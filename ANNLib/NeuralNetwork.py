@@ -94,7 +94,7 @@ def loadLeafData(groupsOf64):
             speciesNumber+=1
 
         l[0] = speciesNumber
-        print (l)
+        #print (l)
         
     #split the leaf classes evenly, 8 training, 2 testing
     for i in range (0,len(leaves),10):
@@ -348,22 +348,19 @@ def setInput(dataPiece):
 #For personal result exporting, writes historical accuracy measurements to a csv file  
 def exportResults():
     
-    file = open('runResults.csv', 'w')
-    file2 = open('runFinalResult.csv','w')
+    file.write("Run: " + str(currentRun))
         
     for accuracy in range(len(detailedResults)):
         file.write(str(detailedResults[accuracy]) + '\n')
             
-    file.close()
     
     for result in range(len(finalTestResults)):
         file2.write(str(finalTestResults[result]) + '\n')
             
-    file2.close()
     
     print("---------------")
-    print ("RESULTS EXPORTED AS: runResults.csv")
-    print ("RESULTS EXPORTED AS: runFinalResults.csv")
+    print ("RESULTS ADDED TO: runResults.csv")
+    print ("FINAL TEST RESULT ADDED TO: runFinalResults.csv")
 
 
 
@@ -526,14 +523,24 @@ def finalTest():
     print (str(correctClassifications) + " / " + str(len(testingDataSet)) + " correctly classified - " + str(round((correctClassifications/len(testingDataSet)),3)) + "% accurate")
     print("")
     print("")
-    finalTestResults.append([correctClassifications,len(testingDataSet),round((correctClassifications/len(testingDataSet)),3)])
+    finalTestResults.append(round((correctClassifications/len(testingDataSet)),3))
     print (detailedResults)
     print (finalTestResults)
     exportResults()
     
 
 #Start the program
+file = open('runResults.csv', 'w')
+file2 = open('runFinalResult.csv','w')
 
 initializeNetwork()
-runNetwork()
-finalTest()
+file.write("30 Runs - layers: " + str(layerSize).replace(',', '-') + "   UseRProp: " + str(rProp) + "   activationFunc: " + activationFunc)
+
+for run in range(3):
+    print ("RUN NUMBER: " + str(run))
+    initializeNetwork()
+    runNetwork()
+    finalTest()
+    
+file.close()
+file2.close()
