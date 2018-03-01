@@ -535,12 +535,15 @@ file2 = open('runFinalResult.csv','w')
 
 initializeNetwork()
 file.write("30 Runs - layers: " + str(layerSize).replace(',', '-') + "   UseRProp: " + str(rProp) + "   activationFunc: " + activationFunc)
+file2.write("30 Runs - layers: " + str(layerSize).replace(',', '-') + "   UseRProp: " + str(rProp) + "   activationFunc: " + activationFunc)
 
+currentRun = 0 #for printing to the file
 for run in range(3):
     print ("RUN NUMBER: " + str(run))
     initializeNetwork()
     runNetwork()
     finalTest()
+    currentRun += 1
     
 file.close()
 file2.close()
