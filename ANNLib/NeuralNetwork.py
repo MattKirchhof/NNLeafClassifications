@@ -491,7 +491,7 @@ def runNetwork():
         
         currentEpoch += 1
             
-        if (currentEpoch > 20): #Dont start checking for convergence until after a set number of maxEpochs
+        if (currentEpoch > 30): #Dont start checking for convergence until after a set number of maxEpochs
             converged = checkConvergence(detailedResults)
          
 
