@@ -10,7 +10,7 @@ random.seed()
 
 # Here are the settings for the neural network
 def setParameters():
-    global layerCount, layerSize, maxEpochs, learningRate, kSplit, activationFunc, momentumAlpha, useMomentum, useSoftmax, dataType, groupsOf64, splitPoint
+    global layerCount, layerSize, maxEpochs, learningRate, kSplit, activationFunc, momentumAlpha, useMomentum, useSoftmax, dataType, groupsOf64, splitPoint, holdoutPoint, useHoldout
     global rProp, rPropInc, rPropDec
     
     #WHAT DATA SET ARE WE WORKING WITH?
@@ -20,14 +20,19 @@ def setParameters():
     
     maxEpochs = 100 #This is the maximum number of maxEpochs until a network converges
     layerCount = 3 #The number of layers in the network
-    layerSize = [192,60,99] #The number of nodes in each layer, a 2 hidden layer network might look like [64,30,25,10] (number takes 64 inputs, leaf takes 64,128,192 input nodes)
+    layerSize = [192,70,99] #The number of nodes in each layer, a 2 hidden layer network might look like [64,30,25,10] (number takes 64 inputs, leaf takes 64,128,192 input nodes)
     learningRate = 0.3
     
     kSplit = 8 # I use a kfold method to split data into training and testing sets. This is the number of splits. ***This should be the same as splitPoint below when using leaf***
     
     #For leaf data only
+    #We do not have a testing set, so this is used to set aside some data for the final test run
     #the i'th example per leaf classification to split between training and testing (ie if splitPoint = 8, 8 examples go to training and 2 go to testing. If splitPoint = 7, 7 train / 3 test)
     splitPoint = 8
+    
+    #holdoutPoint is the percent of data you wish to use for training vs validation
+    useHoldout = True
+    holdoutPoint = 0.8
     
     useMomentum = True
     momentumAlpha = 0.2
@@ -408,7 +413,7 @@ def initializeNetwork():
 # Run the actual network, this runs until the network has converged. See following steps:
 #
 # 1) Every k runs, re-randomize our data
-# 2) set validation set to current k subset, combine all remaining subsets to our training set
+# 2) ONLY FOR KFOLD - set validation set to current k subset, combine all remaining subsets to our training set
 # 3) Test on the validation set and record network accuracy
 # 4) Train the network on the training set
 # 5) Epoch complete, increment counter
@@ -416,6 +421,14 @@ def runNetwork():
     global currentEpoch, converged, batchGradients
     global trainingDataSet
     currentEpoch = 0
+    
+    #initialize holdout sets
+    if (useHoldout):
+        random.shuffle(trainingDataSet)
+        
+        splitpoint = int(holdoutPoint * len(trainingDataSet))
+        trainingSet = trainingDataSet[:splitpoint]
+        validationSet = trainingDataSet[splitpoint+1:]
     
     while (currentEpoch < maxEpochs and not(converged)):
         
@@ -426,27 +439,32 @@ def runNetwork():
         
         # STEP 1 - Randomize Data
         
-        if (currentEpoch%kSplit == 0):
+        if (useHoldout):
+            random.shuffle(trainingSet)
+            random.shuffle(validationSet)
+        else:
+            if (currentEpoch%kSplit == 0):
+                    
+                random.shuffle(trainingDataSet)
+                dataSubsets = [[] for x in range(kSplit)] #reset our list of data subsets
                 
-            dataSubsets = [[] for x in range(kSplit)] #reset our list of data subsets
-            random.shuffle(trainingDataSet)
-                
-            #split into kSplit groups
-            count = 0
-            for i in range(0, len(trainingDataSet), int(len(trainingDataSet)/kSplit)): #actually define new subsets
-                dataSubsets[count] = trainingDataSet[i:i + int(len(trainingDataSet)/kSplit)]
-                count += 1
+                #split into kSplit groups
+                count = 0
+                for i in range(0, len(trainingDataSet), int(len(trainingDataSet)/kSplit)): #actually define new subsets
+                    dataSubsets[count] = trainingDataSet[i:i + int(len(trainingDataSet)/kSplit)]
+                    count += 1
             
-        # STEP 2 - Update Data Sets
-        
-        #assign each group to train/test depending on currentEpoch run
-        trainingSet = []
-        validationSet = []
-        for i in range(kSplit):
-            if (i != currentEpoch%kSplit): #if the current kfold is this set, dont add to the training set
-                trainingSet += dataSubsets[i]  
-        validationSet = dataSubsets[currentEpoch%kSplit]
-        
+            
+            # STEP 2 - Update Data Sets for kfold
+            
+            #assign each group to train/test depending on currentEpoch run
+            trainingSet = []
+            validationSet = []
+            for i in range(kSplit):
+                if (i != currentEpoch%kSplit): #if the current kfold is this set, dont add to the training set
+                    trainingSet += dataSubsets[i]  
+            validationSet = dataSubsets[currentEpoch%kSplit]
+            
         # STEP 3 - Check Accuracy
         
         totalError = 0.0
@@ -534,11 +552,12 @@ file = open('runResults.csv', 'w')
 file2 = open('runFinalResult.csv','w')
 
 initializeNetwork()
-file.write("30 Runs - layers: " + str(layerSize).replace(',', '-') + "   UseRProp: " + str(rProp) + "   activationFunc: " + activationFunc)
-file2.write("30 Runs - layers: " + str(layerSize).replace(',', '-') + "   UseRProp: " + str(rProp) + "   activationFunc: " + activationFunc)
+file.write("30 Runs - layers: " + str(layerSize).replace(',', '-') + "   UseRProp: " + str(rProp) + "   activationFunc: " + activationFunc + "\n")
+file2.write("30 Runs - layers: " + str(layerSize).replace(',', '-') + "   UseRProp: " + str(rProp) + "   activationFunc: " + activationFunc + "\n")
 
 currentRun = 0 #for printing to the file
-for run in range(3):
+for run in range(30):
+    print()
     print ("RUN NUMBER: " + str(run))
     initializeNetwork()
     runNetwork()
@@ -547,3 +566,5 @@ for run in range(3):
     
 file.close()
 file2.close()
+
+print ("-----END-----")
